@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>To-Do List</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 30px;
+        background: #f9f9f9;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    h1 {
+        text-align: center;
+        color: #333;
+    }
+    input, button {
+        padding: 8px;
+        font-size: 14px;
+    }
+    input {
+        width: 65%;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    button {
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    button.add {
+        background: #4CAF50;
+        color: white;
+        margin-left: 5px;
+    }
+    ul {
+        list-style-type: none;
+        padding: 0;
+    }
+    li {
+        background: white;
+        padding: 10px;
+        margin: 5px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 5px;
+        box-shadow: 0px 1px 3px rgba(0,0,0,0.1);
+    }
+    .completed {
+        text-decoration: line-through;
+        color: gray;
+    }
+    .btns button {
+        margin-left: 5px;
+        padding: 5px 8px;
+        font-size: 12px;
+        border-radius: 5px;
+    }
+    .edit { background: #2196F3; color: white; }
+    .complete { background: #FF9800; color: white; }
+    .delete { background: #E53935; color: white; }
+    h2 { margin-top: 30px; color: #555; }
+</style>
+</head>
+<body>
+
+<h1>To-Do List</h1>
+<input type="text" id="taskInput" placeholder="Enter a task">
+<button class="add" onclick="addTask()">Add</button>
+
+<h2>Active Tasks</h2>
+<ul id="taskList"></ul>
+
+<h2>Archived (Completed) Tasks</h2>
+<ul id="archivedList"></ul>
+
+<script>
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    let archived = JSON.parse(localStorage.getItem("archived")) || [];
+
+    function saveData() {
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        localStorage.setItem("archived", JSON.stringify(archived));
+    }
+
+    function renderTasks() {
+        const taskList = document.getElementById("taskList");
+        taskList.innerHTML = "";
+        tasks.forEach((task, index) => {
+            const li = document.createElement("li");
+            li.textContent = task.text;
+            if (task.completed) li.classList.add("completed");
+
+            const btns = document.createElement("div");
+            btns.className = "btns";
+
+            const editBtn = document.createElement("button");
+            editBtn.textContent = "Edit";
+            editBtn.className = "edit";
+            editBtn.onclick = () => editTask(index);
+
+            const completeBtn = document.createElement("button");
+            completeBtn.textContent = "Complete";
+            completeBtn.className = "complete";
+            completeBtn.onclick = () => completeTask(index);
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "❌";
+            deleteBtn.className = "delete";
+            deleteBtn.onclick = () => deleteTask(index);
+
+            btns.appendChild(editBtn);
+            btns.appendChild(completeBtn);
+            btns.appendChild(deleteBtn);
+            li.appendChild(btns);
+            taskList.appendChild(li);
+        });
+
+        const archivedList = document.getElementById("archivedList");
+        archivedList.innerHTML = "";
+        archived.forEach((task, index) => {
+            const li = document.createElement("li");
+            li.textContent = task.text;
+            li.classList.add("completed");
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "❌";
+            deleteBtn.className = "delete";
+            deleteBtn.onclick = () => {
+                archived.splice(index, 1);
+                saveData();
+                renderTasks();
+            };
+
+            li.appendChild(deleteBtn);
+            archivedList.appendChild(li);
+        });
+    }
+
+    function addTask() {
+        const input = document.getElementById("taskInput");
+        if (input.value.trim() === "") return;
+        tasks.push({ text: input.value, completed: false });
+        input.value = "";
+        saveData();
+        renderTasks();
+    }
+
+    function editTask(index) {
+        const newText = prompt("Edit task:", tasks[index].text);
+        if (newText !== null && newText.trim() !== "") {
+            tasks[index].text = newText.trim();
+            saveData();
+            renderTasks();
+        }
+    }
+
+    function completeTask(index) {
+        const task = tasks.splice(index, 1)[0];
+        task.completed = true;
+        archived.push(task);
+        saveData();
+        renderTasks();
+    }
+
+    function deleteTask(index) {
+        tasks.splice(index, 1);
+        saveData();
+        renderTasks();
+    }
+
+    renderTasks();
+</script>
+
+</body>
+</html>
