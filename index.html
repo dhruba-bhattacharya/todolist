@@ -20,7 +20,7 @@
         padding: 8px;
         font-size: 14px;
     }
-    input {
+    input[type="text"] {
         width: 65%;
         border: 1px solid #ccc;
         border-radius: 5px;
@@ -63,19 +63,27 @@
     .complete { background: #FF9800; color: white; }
     .delete { background: #E53935; color: white; }
     h2 { margin-top: 30px; color: #555; }
+    #archiveList { display: none; }
+    .drag-over { border: 2px dashed #aaa; }
 </style>
 </head>
 <body>
 
 <h1>To-Do List</h1>
+
 <input type="text" id="taskInput" placeholder="Enter a task">
 <button class="add" onclick="addTask()">Add</button>
+<br><br>
+<input type="text" id="searchInput" placeholder="Search tasks..." onkeyup="renderTasks()">
 
 <h2>Active Tasks</h2>
 <ul id="taskList"></ul>
 
-<h2>Archived (Completed) Tasks</h2>
-<ul id="archivedList"></ul>
+<h2>
+    Archived (Completed) Tasks
+    <button onclick="toggleArchive()">Show/Hide</button>
+</h2>
+<ul id="archiveList"></ul>
 
 <script>
     let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
@@ -88,56 +96,66 @@
 
     function renderTasks() {
         const taskList = document.getElementById("taskList");
+        const searchValue = document.getElementById("searchInput").value.toLowerCase();
         taskList.innerHTML = "";
-        tasks.forEach((task, index) => {
-            const li = document.createElement("li");
-            li.textContent = task.text;
-            if (task.completed) li.classList.add("completed");
 
-            const btns = document.createElement("div");
-            btns.className = "btns";
+        tasks
+            .filter(task => task.text.toLowerCase().includes(searchValue))
+            .forEach((task, index) => {
+                const li = document.createElement("li");
+                li.textContent = task.text;
+                li.draggable = true;
+                li.ondragstart = (e) => dragStart(e, index);
+                li.ondragover = (e) => dragOver(e);
+                li.ondrop = (e) => drop(e, index);
+                if (task.completed) li.classList.add("completed");
 
-            const editBtn = document.createElement("button");
-            editBtn.textContent = "Edit";
-            editBtn.className = "edit";
-            editBtn.onclick = () => editTask(index);
+                const btns = document.createElement("div");
+                btns.className = "btns";
 
-            const completeBtn = document.createElement("button");
-            completeBtn.textContent = "Complete";
-            completeBtn.className = "complete";
-            completeBtn.onclick = () => completeTask(index);
+                const editBtn = document.createElement("button");
+                editBtn.textContent = "Edit";
+                editBtn.className = "edit";
+                editBtn.onclick = () => editTask(index);
 
-            const deleteBtn = document.createElement("button");
-            deleteBtn.textContent = "❌";
-            deleteBtn.className = "delete";
-            deleteBtn.onclick = () => deleteTask(index);
+                const completeBtn = document.createElement("button");
+                completeBtn.textContent = "Complete";
+                completeBtn.className = "complete";
+                completeBtn.onclick = () => completeTask(index);
 
-            btns.appendChild(editBtn);
-            btns.appendChild(completeBtn);
-            btns.appendChild(deleteBtn);
-            li.appendChild(btns);
-            taskList.appendChild(li);
-        });
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "❌";
+                deleteBtn.className = "delete";
+                deleteBtn.onclick = () => deleteTask(index);
 
-        const archivedList = document.getElementById("archivedList");
+                btns.appendChild(editBtn);
+                btns.appendChild(completeBtn);
+                btns.appendChild(deleteBtn);
+                li.appendChild(btns);
+                taskList.appendChild(li);
+            });
+
+        const archivedList = document.getElementById("archiveList");
         archivedList.innerHTML = "";
-        archived.forEach((task, index) => {
-            const li = document.createElement("li");
-            li.textContent = task.text;
-            li.classList.add("completed");
+        archived
+            .filter(task => task.text.toLowerCase().includes(searchValue))
+            .forEach((task, index) => {
+                const li = document.createElement("li");
+                li.textContent = task.text;
+                li.classList.add("completed");
 
-            const deleteBtn = document.createElement("button");
-            deleteBtn.textContent = "❌";
-            deleteBtn.className = "delete";
-            deleteBtn.onclick = () => {
-                archived.splice(index, 1);
-                saveData();
-                renderTasks();
-            };
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "❌";
+                deleteBtn.className = "delete";
+                deleteBtn.onclick = () => {
+                    archived.splice(index, 1);
+                    saveData();
+                    renderTasks();
+                };
 
-            li.appendChild(deleteBtn);
-            archivedList.appendChild(li);
-        });
+                li.appendChild(deleteBtn);
+                archivedList.appendChild(li);
+            });
     }
 
     function addTask() {
@@ -168,6 +186,28 @@
 
     function deleteTask(index) {
         tasks.splice(index, 1);
+        saveData();
+        renderTasks();
+    }
+
+    function toggleArchive() {
+        const archiveList = document.getElementById("archiveList");
+        archiveList.style.display = archiveList.style.display === "none" ? "block" : "none";
+    }
+
+    // Drag & Drop
+    let draggedIndex = null;
+    function dragStart(e, index) {
+        draggedIndex = index;
+    }
+    function dragOver(e) {
+        e.preventDefault();
+        e.target.closest("li").classList.add("drag-over");
+    }
+    function drop(e, dropIndex) {
+        e.preventDefault();
+        const draggedItem = tasks.splice(draggedIndex, 1)[0];
+        tasks.splice(dropIndex, 0, draggedItem);
         saveData();
         renderTasks();
     }
